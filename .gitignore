@@ -8,6 +8,11 @@ __pycache__/
 .venv/
 venv/
 
+# Python build artifacts
+dist/
+build/
+*.egg-info/
+
 # Environment / secrets
 .env
 .env.*

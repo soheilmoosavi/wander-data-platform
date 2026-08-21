@@ -1,0 +1,24 @@
+[project]
+name = "wander_data_platform"
+version = "0.0.1"
+authors = [{ name = "Soheil Moosavi" }]
+requires-python = ">=3.10,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "databricks-dlt",
+    "databricks-connect>=15.4,<15.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
