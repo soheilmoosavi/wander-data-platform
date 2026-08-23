@@ -322,6 +322,12 @@ Average Guests       3.27
 
 The dashboard provides a business-facing consumption layer on top of the Gold data product.
 
+# Analytics Dashboard
+
+The Gold layer is consumed through an interactive Databricks SQL dashboard providing business-level booking, revenue, geographic, and status analytics.
+
+![Wander Booking Analytics Dashboard](docs/images/wander-booking-analytics.png)
+
 ---
 
 # Testing
