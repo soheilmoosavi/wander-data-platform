@@ -343,25 +343,33 @@ The project follows the following engineering principles:
 
 ## Project Status
 
-🚧 **In Development**
+🚧 **Active Development**
 
-### Planned milestones
+### Completed
 
 - [x] Local development environment
 - [x] Databricks CLI configuration
 - [x] Databricks workspace authentication
 - [x] Source data discovery
-- [x] Initial architecture design
-- [ ] GitHub repository
-- [ ] Databricks Bundle
-- [ ] Environment configuration
-- [ ] Bronze pipeline
-- [ ] Silver pipeline
-- [ ] Data quality framework
-- [ ] Gold data model
-- [ ] Automated testing
+- [x] Medallion architecture
+- [x] Bronze booking pipeline
+- [x] Silver validation pipeline
+- [x] Quarantine handling
+- [x] Data quality expectations
+- [x] Booking data contract
+- [x] Gold daily booking metrics
+- [x] Databricks Declarative Automation Bundle
+- [x] DEV deployment
+- [x] Unit tests
+- [x] Databricks SQL analytics dashboard
+
+### Planned
+
 - [ ] GitHub Actions CI
 - [ ] GitHub Actions CD
-- [ ] Databricks SQL analytics
+- [ ] STAGE deployment
+- [ ] Production deployment
+- [ ] Integration tests
 - [ ] Monitoring and observability
-- [ ] Production documentation
+- [ ] Additional source entities
+- [ ] Expanded analytical data model
