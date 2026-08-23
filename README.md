@@ -2,129 +2,186 @@
 
 A production-oriented end-to-end data engineering platform built on Databricks.
 
-This project demonstrates how to design, develop, test, deploy, and operate a modern data platform using Databricks, Lakeflow, Unity Catalog, GitHub, and automated CI/CD.
+This project demonstrates how to design, develop, test, deploy, and operate a modern data platform using **Databricks, Lakeflow, Unity Catalog, PySpark, Git, and Databricks Declarative Automation Bundles**.
 
-------------------------------------------------------------------------------------
+---
 
-## Project Objective
+## Overview
 
-The goal of the Wander Data Platform is to build a production-style data engineering platform from source to analytics.
+The Wander Data Platform processes booking data from the Databricks Wanderbricks dataset through a governed **Medallion Architecture** and produces analytics-ready Gold data products.
 
-The platform will ingest data from the Databricks Wanderbricks data product, process it through a governed Medallion Architecture, apply automated data quality controls, and publish analytics-ready data products.
+The current implementation focuses on the **booking domain** and demonstrates:
 
-The project is designed to demonstrate production engineering practices including:
-
+- Source-aligned Bronze ingestion
+- Silver data validation and standardization
+- Data quality expectations
+- Invalid-record handling through quarantine
+- Contract-based data definitions
+- Gold business aggregations
+- Automated unit testing
+- Databricks Bundle deployment
+- Environment-specific configuration
+- Databricks SQL analytics
+- Interactive business dashboards
 - Git-based development
-- Pull request workflows
-- Automated testing
-- CI/CD with GitHub Actions
-- Environment-specific deployments
-- Data quality and validation
-- Unity Catalog governance
-- Lakeflow pipelines
-- Databricks Declarative Automation Bundles
-- Monitoring and operational readiness
 
-------------------------------------------------------------------------------------
+The platform is intentionally designed using production-oriented engineering practices so that it can be extended to additional domains and deployment environments.
 
-## Architecture
+---
 
-The platform follows a layered Medallion Architecture implemented with Databricks Lakeflow.
+# Architecture
+
+The current platform follows a Medallion Architecture implemented with Databricks Lakeflow.
 
 ```text
-Databricks Wanderbricks Data Product
-                │
-                ▼
-          Source / Ingestion
-                │
-                ▼
-             Bronze
-        Raw source-aligned data
-                │
-                ▼
-             Silver
-     Validated and standardized data
-                │
-                ▼
-              Gold
-       Business-ready data products
-                │
-          ┌─────┴─────┐
-          ▼           ▼
-   Databricks SQL   Analytics
+                    Wanderbricks
+                   Source Dataset
+                         │
+                         ▼
+                ┌─────────────────┐
+                │     BRONZE      │
+                │  bronze_bookings│
+                │                 │
+                │ Raw source data │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │     SILVER      │
+                │  silver_bookings│
+                │                 │
+                │ Data validation │
+                │ Quality rules   │
+                └────────┬────────┘
+                         │
+                  ┌──────┴──────┐
+                  │             │
+                  ▼             ▼
+        ┌────────────────┐  ┌──────────────────┐
+        │   QUARANTINE   │  │       GOLD       │
+        │                │  │                  │
+        │ Rejected data  │  │ Daily business   │
+        │                │  │ metrics          │
+        └────────────────┘  └────────┬─────────┘
+                                     │
+                                     ▼
+                            ┌──────────────────┐
+                            │ Databricks SQL   │
+                            │    Dashboard     │
+                            └──────────────────┘
+```
 
+---
 
-------------------------------------------------------------------------------------
+# Environment Strategy
 
-## 2. Environment Strategy
+The platform uses Databricks Declarative Automation Bundles to manage environment-specific deployment configuration.
 
-```markdown
-## Environment Strategy
+The current implementation uses **Databricks Free Edition**, which provides a single workspace.
 
-The platform is designed with three deployment environments:
+Environment separation is therefore implemented through Bundle deployment targets and environment-specific catalog/schema configuration.
 
-- DEV — active development and testing
-- STAGE — pre-production validation
-- PROD — production workloads
+Current targets:
 
-Environment-specific configuration is managed through Databricks Declarative Automation Bundles.
+- **DEV** — development and testing
+- **PROD** — production-oriented deployment configuration
 
-The current implementation uses Databricks Free Edition, which provides a single workspace. Therefore, environment isolation is initially implemented through deployment targets and environment-specific catalogs within the available workspace.
+The architecture is designed so that the same deployment model can later be promoted to separate Databricks workspaces when additional environments become available.
 
-The project architecture is intentionally designed so that the same deployment model can later be promoted to separate Databricks workspaces when additional environments are available.
+---
 
-------------------------------------------------------------------------------------
+# Data Architecture
 
+## Bronze
 
-## 3. Data Architecture
+The Bronze layer contains source-aligned booking data with minimal transformation.
 
-The platform uses a Medallion Architecture consisting of three primary layers.
-
-### Bronze
-
-The Bronze layer contains source-aligned data with minimal transformation.
-
-Responsibilities:
+### Responsibilities
 
 - Source ingestion
-- Schema preservation
-- Ingestion metadata
-- Initial technical validation
-- Traceability to source data
+- Preservation of source structure
+- Traceability to the source dataset
+- Initial ingestion layer for downstream processing
 
-### Silver
+Current table:
 
-The Silver layer contains validated and standardized datasets.
+```text
+bronze_bookings
+```
 
-Responsibilities:
+---
 
-- Data cleansing
-- Schema enforcement
-- Data quality validation
-- Deduplication
-- Referential integrity
-- Standardization
-- Business-independent transformations
+## Silver
 
-### Gold
+The Silver layer contains validated booking records.
 
-The Gold layer contains business-ready analytical datasets.
+### Responsibilities
 
-Responsibilities:
+- Data quality enforcement
+- Validation of required fields
+- Validation of booking dates
+- Validation of guest counts
+- Validation of monetary values
+- Validation of booking status
+- Standardization for downstream analytics
 
-- Dimensional modeling
-- Business transformations
-- Aggregations
-- Analytical metrics
-- Data products for downstream consumption
+Current table:
 
-------------------------------------------------------------------------------------
+```text
+silver_bookings
+```
 
-## 4.Source Data
+---
 
-The primary source is the Databricks Wanderbricks dataset provided through a Databricks data share.
+## Quarantine
 
-The source contains entities related to a travel marketplace, including:
+The Quarantine layer isolates rejected records from the main analytical flow.
+
+Current implementation includes handling for invalid booking records such as negative booking amounts.
+
+Current table:
+
+```text
+quarantine_bookings
+```
+
+This approach prevents invalid records from contaminating downstream analytical datasets while preserving rejected records for investigation.
+
+---
+
+## Gold
+
+The Gold layer contains business-ready analytical metrics derived from validated Silver bookings.
+
+Current table:
+
+```text
+gold_booking_daily
+```
+
+The Gold dataset provides daily metrics including:
+
+```text
+booking_date
+total_bookings
+confirmed_bookings
+completed_bookings
+cancelled_bookings
+pending_bookings
+total_revenue
+average_booking_value
+average_guests
+```
+
+The table is generated by aggregating validated Silver bookings by booking date.
+
+---
+
+# Source Data
+
+The primary source is the Databricks **Wanderbricks** dataset.
+
+The source represents a travel marketplace and contains multiple business entities, including:
 
 - Users
 - Bookings
@@ -136,216 +193,341 @@ The source contains entities related to a travel marketplace, including:
 - Property images
 - Employees
 
-The shared source data is treated as read-only. All transformations are performed within the platform's managed data layers.
+The current implementation focuses on the **Bookings** domain.
 
-------------------------------------------------------------------------------------
+The shared source data is treated as read-only. Transformations are performed within the managed Bronze, Silver, Quarantine, and Gold layers.
 
-## 5. Data Model
+---
 
-The analytical model will be designed around the core business domains of the travel marketplace.
+# Booking Data Quality
 
-### Core domains
+Data quality is treated as a first-class component of the pipeline.
 
-- Customer
-- Property
-- Host
-- Booking
-- Revenue
+Current booking expectations include:
 
-The Gold layer is expected to contain a combination of fact and dimension tables.
+```text
+booking_id IS NOT NULL
+user_id IS NOT NULL
+property_id IS NOT NULL
+check_in IS NOT NULL
+check_out IS NOT NULL
+check_out >= check_in
+guests_count > 0
+total_amount >= 0
+status IN (
+    'pending',
+    'confirmed',
+    'cancelled',
+    'completed'
+)
+```
 
-### Candidate fact tables
+These rules protect the Silver layer from invalid records and provide a consistent quality boundary between raw and analytical data.
 
-- `fact_bookings`
-- `fact_revenue`
+---
 
-### Candidate dimension tables
+# Data Contract
 
-- `dim_customer`
-- `dim_property`
-- `dim_host`
-- `dim_city`
-- `dim_amenity`
-- `dim_date`
+A booking data contract is maintained in:
 
-The final model will be defined after completing source data profiling and business-rule analysis.
+```text
+contracts/bookings.yml
+```
 
-------------------------------------------------------------------------------------
+The contract documents:
 
-## 6. Data Quality
+- Dataset definition
+- Primary key
+- Column types
+- Nullability
+- Column constraints
+- Allowed status values
+- Relationships to other business entities
 
-Data quality is treated as a first-class component of the platform.
+Example:
 
-Expected validation categories include:
+```yaml
+primary_key:
+  - booking_id
 
-- Completeness
-- Uniqueness
-- Referential integrity
-- Validity
-- Consistency
-- Business rule validation
-- Schema validation
+columns:
+  booking_id:
+    type: bigint
+    nullable: false
 
-Example booking rules include:
+  guests_count:
+    type: int
+    nullable: false
 
-- `booking_id` must not be null
-- `booking_id` must be unique
-- `user_id` must reference an existing user
-- `property_id` must reference an existing property
-- `check_out` must not precede `check_in`
-- `guests_count` must be greater than zero
-- `total_amount` must not be negative
-- `updated_at` must not precede `created_at`
+  total_amount:
+    type: float
+    nullable: false
+```
 
-Invalid records will be handled according to the severity of the quality rule, including quarantine, drop, or pipeline failure where appropriate.
+The contract provides a foundation for future schema validation and expansion of the platform's data governance framework.
 
-------------------------------------------------------------------------------------
+---
 
+# Gold Business Metrics
 
-## 7. CI/CD
+The current Gold data product provides analytics-ready booking metrics.
 
-All application and data pipeline code is version-controlled in GitHub.
+The resulting dataset contains:
 
-The target development lifecycle is:
+- Total bookings
+- Confirmed bookings
+- Completed bookings
+- Cancelled bookings
+- Pending bookings
+- Total revenue
+- Average booking value
+- Average guests
+
+The current dataset contains approximately:
+
+**249,983 validated bookings**
+
+and provides daily analytical observations across the available booking period.
+
+---
+
+# Analytics Dashboard
+
+The Gold layer is consumed through a **Databricks SQL Dashboard** named:
+
+```text
+Wander Booking Analytics
+```
+
+The dashboard provides:
+
+- Total bookings
+- Total revenue
+- Average booking value
+- Average guests
+- Booking status distribution
+- Daily booking trends
+- Daily revenue trends
+- Geographic booking analysis
+- Top-country revenue analysis
+
+Example KPI output:
+
+```text
+Total Bookings       249.98K
+Total Revenue        $138M
+Average Booking      $551.63
+Average Guests       3.27
+```
+
+The dashboard provides a business-facing consumption layer on top of the Gold data product.
+
+---
+
+# Testing
+
+The project includes automated Python unit tests using `pytest`.
+
+Tests currently cover the Bronze booking pipeline and related local functionality.
+
+Run the test suite with:
+
+```bash
+uv run pytest
+```
+
+Example result:
+
+```text
+1 passed
+```
+
+Databricks Bundle configuration is also validated before deployment:
+
+```bash
+databricks bundle validate -t dev
+```
+
+---
+
+# Deployment
+
+The project uses **Databricks Declarative Automation Bundles** for deployment.
+
+The main Bundle configuration is:
+
+```text
+databricks.yml
+```
+
+Pipeline resources are defined under:
+
+```text
+resources/
+```
+
+Deploy to the development environment with:
+
+```bash
+databricks bundle deploy -t dev
+```
+
+Validate the Bundle with:
+
+```bash
+databricks bundle validate -t dev
+```
+
+The current development deployment uses:
+
+```text
+catalog = workspace
+schema  = dev
+```
+
+The production target is configured separately using:
+
+```text
+catalog = workspace
+schema  = prod
+```
+
+---
+
+# Development Workflow
+
+The project follows a Git-based development workflow.
 
 ```text
 Feature Branch
       │
       ▼
-Pull Request
+Local Development
       │
-      ▼
-Continuous Integration
-      │
-      ├── Code Quality
       ├── Unit Tests
-      ├── SQL Validation
+      ├── Code Validation
       └── Bundle Validation
       │
       ▼
-     DEV
+Git Commit
       │
       ▼
-Integration Testing
+Git Push
       │
       ▼
-    STAGE
+Databricks Deployment
       │
       ▼
-Production Approval
+Pipeline Execution
       │
       ▼
-     PROD
+Analytics Dashboard
+```
 
-------------------------------------------------------------------------------------
+---
 
-
-## 8. Repository Structure
-
-```markdown
-## Repository Structure
+# Repository Structure
 
 ```text
 wander-data-platform/
 │
-├── .github/
-│   └── workflows/
+├── contracts/
+│   ├── bookings.yml
+│   ├── loader.py
+│   └── bookings.old.py
 │
 ├── src/
-│   ├── bronze/
-│   ├── silver/
-│   ├── gold/
-│   └── common/
+│   └── wander_data_platform_etl/
+│       ├── __init__.py
+│       ├── bronze/
+│       │   └── bookings.py
+│       ├── silver/
+│       │   └── bookings.py
+│       ├── quarantine/
+│       │   └── bookings.py
+│       └── gold/
+│           └── bookings.py
 │
 ├── tests/
-│   ├── unit/
-│   └── integration/
+│   ├── conftest.py
+│   └── unit/
+│       └── test_bronze_bookings.py
 │
 ├── resources/
-│
-├── sql/
-│
-├── docs/
-│   ├── architecture/
-│   ├── data-model/
-│   ├── data-contracts/
-│   ├── decisions/
-│   └── runbooks/
-│
-├── conf/
+│   └── wander_data_platform_etl.pipeline.yml
 │
 ├── databricks.yml
 ├── pyproject.toml
-├── README.md
-└── .gitignore
+├── uv.lock
+├── AGENTS.md
+├── CLAUDE.md
+└── README.md
+```
 
-------------------------------------------------------------------------------------
+---
 
+# Technology Stack
 
-## 9. Technology Stack
-
-```markdown
-## Technology Stack
-
-### Data Platform
+## Data Platform
 
 - Databricks
 - Lakeflow
-- Unity Catalog
 - Apache Spark
 - PySpark
+- Delta Lake
+- Unity Catalog
 - Databricks SQL
 
-### Development
+## Development
 
 - Python
 - SQL
 - Git
 - GitHub
+- uv
 
-### CI/CD
+## Deployment
 
-- GitHub Actions
 - Databricks Declarative Automation Bundles
+- Databricks CLI
 
-### Testing and Quality
+## Testing
 
 - pytest
-- Python linting
-- SQL validation
 - Data quality expectations
+- Bundle validation
 
-### Governance and Security
+## Governance
 
 - Unity Catalog
-- Role-based access control
-- Least-privilege principles
-- Environment isolation
+- Environment-specific catalogs and schemas
+- Data contracts
+- Source data isolation
 
-------------------------------------------------------------------------------------
+---
 
-## 10. Engineering Principles
+# Engineering Principles
 
-The project follows the following engineering principles:
+The project follows production-oriented engineering principles:
 
-1. Everything possible should be version controlled.
-2. Infrastructure and deployment configuration should be defined as code.
-3. Production changes should go through pull requests.
-4. Automated tests should run before deployment.
-5. Data quality should be enforced as part of the pipeline.
-6. Source data should remain immutable.
-7. Production workloads should use least-privilege access.
-8. Development, staging, and production concerns should remain isolated.
-9. Pipelines should be observable and operationally supportable.
-10. Deployments should be reproducible.
+1. Source data remains read-only.
+2. Data transformations are organized using Medallion Architecture.
+3. Data quality is enforced before analytical consumption.
+4. Invalid records are isolated from trusted analytical datasets.
+5. Deployment configuration is defined as code.
+6. Application code is version controlled with Git.
+7. Unit tests are executed before deployment.
+8. Environment-specific configuration is maintained through deployment targets.
+9. Gold datasets are designed around business consumption.
+10. The platform is designed for incremental expansion to additional domains.
 
-------------------------------------------------------------------------------------
+---
 
-## Project Status
+# Project Status
 
 🚧 **Active Development**
 
-### Completed
+## Completed
 
 - [x] Local development environment
 - [x] Databricks CLI configuration
@@ -362,8 +544,9 @@ The project follows the following engineering principles:
 - [x] DEV deployment
 - [x] Unit tests
 - [x] Databricks SQL analytics dashboard
+- [x] Git-based development workflow
 
-### Planned
+## Planned
 
 - [ ] GitHub Actions CI
 - [ ] GitHub Actions CD
@@ -373,3 +556,62 @@ The project follows the following engineering principles:
 - [ ] Monitoring and observability
 - [ ] Additional source entities
 - [ ] Expanded analytical data model
+- [ ] Automated data contract validation
+- [ ] Operational runbooks
+
+---
+
+# Future Improvements
+
+The platform is designed to evolve beyond the current booking-domain implementation.
+
+Potential future enhancements include:
+
+- Additional Bronze/Silver pipelines for Users, Properties, Hosts, and Cities
+- Fact and dimension data models
+- Incremental ingestion
+- Slowly Changing Dimensions
+- Automated schema evolution handling
+- Referential integrity validation across domains
+- GitHub Actions CI/CD
+- Integration testing
+- Data observability
+- Pipeline monitoring and alerting
+- Production deployment across separate Databricks workspaces
+- Automated data contract enforcement
+- Advanced analytical dashboards
+
+---
+
+# Key Takeaway
+
+The Wander Data Platform demonstrates an end-to-end modern data engineering workflow:
+
+```text
+Source
+  │
+  ▼
+Bronze
+  │
+  ▼
+Silver ───────► Quarantine
+  │
+  ▼
+Gold
+  │
+  ▼
+Analytics
+  │
+  ▼
+Databricks Dashboard
+```
+
+The project combines **data engineering, data quality, governance, deployment automation, testing, and business analytics** into a single Databricks-based platform.
+
+---
+
+## Author
+
+**Soheil Moosavi**
+
+Data Engineer | Data Platform | Databricks | Azure | Oracle | SQL Server
